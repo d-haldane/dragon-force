@@ -2,20 +2,52 @@
 #use-added-syntax(jitx)
 defpackage design-template :
   import core
+  import math
   import jitx
   import jitx/commands
   import ocdb/utils/checks
   import ocdb/utils/generic-components
+  import ocdb/utils/bundles
 
 ; ==========================================
 ; Implement other modules used by our design 
 ; ==========================================
+pcb-bundle reflector : 
+  pin collector
+  pin emitter
+  pin a
+  pin c
 
+pcb-module load-cell :
+  port signals : reflector[4]
+  inst reflector : ocdb/components/everlight-elec/ITR1204SR10A/component[4]
+
+  for i in 0 to 4 do :
+    val angle = PI / 2.0 * to-double(i)
+    place(reflector[i]) at loc(2.5 * cos(angle), 2.5 * sin(angle), (angle + PI) * 180.0 / PI) on Top
+    net (signals[i].collector reflector[i].collector)
+    net (signals[i].emitter reflector[i].emitter)
+    net (signals[i].a reflector[i].a)
+    net (signals[i].c reflector[i].c)
+
+  layer(Silkscreen("EXT", Top)) = ocdb/utils/landpatterns/LineCircle(10.0)
 ; =========================
 ; Module to run as a design
 ; ==========================
 val board-shape = RoundedRectangle(30.0, 18.5, 0.25)
 pcb-module my-design :
+
+  inst stm : ocdb/components/st-microelectronics/STM32G030F6P6/component
+  inst sensor : load-cell
+  ; require distance : adc[4] from stm
+  ; require pwm : timer from stm
+  ; require telemetry : usart([UART-TX UART-RX UART-RTS UART-CTS]) from stm
+
+  inst op : ocdb/components/texas-instruments/LMV3xx/component
+
+  ; Signal conditionion - what range of distance do we need to read?
+  ; Current at a distance : light emitted * 
+
 
   inst version-label  : ocdb/artwork/board-text/version-silkscreen("Version 0.0")
   place(version-label) at loc(0.0, height(board-shape) / 2.0 - 1.0) on Bottom
